@@ -6,7 +6,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
-from config_data.config import Config, load_config
+from config_data.config import Config, load_config_tgbot
 from handlers import other_handlers, user_handlers, admin_handlers
 from keyboards.main_menu import set_main_menu
 
@@ -27,9 +27,8 @@ async def main():
     logger.info('Starting bot')
 
     # Загружаем конфиг в переменную config
-    config: Config = load_config()
+    config: Config = load_config_tgbot()
     storage = MemoryStorage()
-
 
     # Инициализируем бот и диспетчер
     bot = Bot(
@@ -38,6 +37,7 @@ async def main():
     )
     dp = Dispatcher(storage=storage)
 
+    dp['admin_ids'] = config.tg_bot.admin_ids
     # Настраиваем главное меню бота
     await set_main_menu(bot)
 
