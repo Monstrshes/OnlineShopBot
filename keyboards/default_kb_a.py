@@ -10,3 +10,23 @@ def create_admin_panel_kb() -> ReplyKeyboardMarkup:
         resize_keyboard=True
     )
     return keyboard
+
+def create_add_photo_kb() -> ReplyKeyboardMarkup:
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=lexicon['admin']['no_photo_button'])],
+            [KeyboardButton(text=lexicon['common']['cancel_button'])]
+        ],
+        resize_keyboard=True
+    )
+    return keyboard
+
+def create_add_available_kb() -> ReplyKeyboardMarkup:
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=lexicon['admin']['no_available_button'])],
+            [KeyboardButton(text=lexicon['common']['cancel_button'])]
+        ],
+        resize_keyboard=True
+    )
+    return keyboard

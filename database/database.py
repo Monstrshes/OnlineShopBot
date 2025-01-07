@@ -100,3 +100,20 @@ def new_user_in_users(user_id: int, username: str, first_name: str, last_name: s
         finally:
             cur.close()
             conn.close()
+
+def add_product(sl: dict):
+    """
+    Добавление нового товара в таблицу products
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute("""INSERT INTO products (title, description, price, category, image_url, available)
+                        VALUES (?, ?, ?, ?, ?, ?)""", (sl['name'], sl['descr'], sl['price'], sl['category'], sl['photo'], sl['available']))
+            conn.commit()
+        except Exception as e:
+            print(f'ошибка при создании записи новго пользователя в products:{e}')
+        finally:
+            cur.close()
+            conn.close()

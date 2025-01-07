@@ -5,11 +5,13 @@ from aiogram.filters import Command, CommandStart, StateFilter
 from states.states import FSMFillForm
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardRemove, FSInputFile
+from copy import deepcopy
 
 from lexicon.lexicon_ru import lexicon
 from lexicon.lexicon_for_every_magazine import lexicon_for_shop
 from  database.database import create_users_bd, create_products_bd, create_bag_for_user, new_user_in_users
 from keyboards.default_kb import create_only_to_menu_kb, create_only_to_admin_panel_kb, create_menu_kb
+from database.additional_variables import new_product_ex, admin_categories_nodef, pr, ct
 
 
 router = Router()
@@ -25,6 +27,8 @@ async def process_start_message(message: Message, state: FSMContext, admin_ids):
     create_bag_for_user(message.from_user.id)
     if message.from_user.id in admin_ids:
         role = 'admin'
+        pr[f'new_prod_by_{message.from_user.id}'] = deepcopy(new_product_ex)
+        ct[f'admin_{message.from_user.id}_categories'] = deepcopy(admin_categories_nodef)
     else: role = 'user'
     new_user_in_users(message.from_user.id, message.from_user.username, message.from_user.first_name, message.from_user.last_name, role)
     await message.answer(
@@ -67,7 +71,7 @@ async def process_to_admin_panel(message: Message, state: FSMContext, admin_ids)
         )
         await state.set_state(default_state)
 
-@router.message(~StateFilter(FSMFillForm.menu_a, FSMFillForm.add_product_a), Command(commands='end_admin'))
+@router.message(StateFilter(FSMFillForm.menu, FSMFillForm.show_catalog, FSMFillForm.show_bag, FSMFillForm.do_buy), Command(commands='end_admin'))
 async def process_to_end_admin_NOT_IN_ADMIN_STATE(message: Message, state: FSMContext):
     """
     Обрабатываем команду /end_admin НЕ В СОСТОЯНИИ АДМИНА.

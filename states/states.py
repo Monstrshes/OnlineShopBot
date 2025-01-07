@@ -7,4 +7,10 @@ class FSMFillForm(StatesGroup):
     do_buy = State() #состояние для покупки для пользователя
 
     menu_a = State() #Состояние меню админа
-    add_product_a = State() #состояние для добавления товара для админа
+    add_product_price_a = State() #состояние для добавления цены товара для админа
+    add_product_name_a = State() #Состоляние для добавления назавания товара
+    add_product_descr_a = State() #Состояние для ввода описания товара
+    add_product_photo_a = State() #состояние для ввода фото товара
+    add_product_category = State() #состояние для выбора категории  продукта
+    add_product_available_a = State() #Состояние для ввода количества товара
+    y_or_n_to_add_product_a  = State() #окончательное согласие или отказ на добавление товара

@@ -25,3 +25,22 @@ def create_menu_kb() -> ReplyKeyboardMarkup:
         resize_keyboard=True
     )
     return keyboard
+
+def create_cancellation_kb() -> ReplyKeyboardMarkup:
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=lexicon['common']['cancel_button'])]
+        ],
+        resize_keyboard=True
+    )
+    return keyboard
+
+def create_yes_no_kb() -> ReplyKeyboardMarkup:
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text='Да')],
+            [KeyboardButton(text='Нет')]
+        ],
+        resize_keyboard=True
+    )
+    return keyboard
