@@ -9,9 +9,10 @@ from copy import deepcopy
 
 from lexicon.lexicon_ru import lexicon
 from lexicon.lexicon_for_every_magazine import lexicon_for_shop
-from  database.database import create_users_bd, create_products_bd, create_bag_for_user, new_user_in_users
+from database.database import create_users_bd, create_products_bd, create_bag_for_user, new_user_in_users, get_products_for_catalog, add_prod_to_user_bag
 from keyboards.default_kb import create_only_to_menu_kb, create_only_to_admin_panel_kb, create_menu_kb
-from database.additional_variables import new_product_ex, admin_categories_nodef, pr, ct
+from database.additional_variables import new_product_ex, admin_categories_nodef, pr, ct,admin_categories_def
+from keyboards.inline_kb import create_catalog_pagination_kb, create_categories_kb_to_show_catalpg
 
 
 router = Router()
@@ -84,7 +85,7 @@ async def process_to_end_admin_NOT_IN_ADMIN_STATE(message: Message, state: FSMCo
     )
     await state.set_state(default_state)
 
-@router.message(StateFilter(default_state), F.text == lexicon['common']['back_to_menu_button'])
+@router.message(StateFilter(default_state, FSMFillForm.menu, FSMFillForm.show_catalog), F.text == lexicon['common']['back_to_menu_button'])
 async def process_go_to_menu(message: Message, state: FSMContext):
     """
     Обрабатывваем кнопку Вернуться в меню в следующих состояниях:
@@ -92,6 +93,127 @@ async def process_go_to_menu(message: Message, state: FSMContext):
     """
     keyboard = create_menu_kb()
     await message.answer(
+        text =lexicon['common']['menu_message'],
+        reply_markup=keyboard
+    )
+    await state.set_state(FSMFillForm.menu)
+
+@router.message(StateFilter(FSMFillForm.menu), F.text == lexicon['catalog']['catalog_title'])
+async def process_go_to_catalog(message: Message, state: FSMContext):
+    """
+    Обрабатываем кнопку Каталог товаров
+    """
+    if ct[f'admin_{message.from_user.id}_categories']:
+        keyboard = create_categories_kb_to_show_catalpg(ct[f'admin_{message.from_user.id}_categories'])
+    else:
+        keyboard = create_categories_kb_to_show_catalpg(admin_categories_def)
+    await message.answer(
+        text=lexicon['common']['del_kb'],
+        reply_markup=ReplyKeyboardRemove()
+    )
+    await message.answer(
+        text=lexicon['catalog']['select_category'],
+        reply_markup=keyboard
+    )
+    await state.set_state(FSMFillForm.show_catalog)
+
+@router.callback_query(StateFilter(FSMFillForm.show_catalog), ~F.data.in_(lexicon['pagination_btns'].values()) & ~F.data.in_(['cancel', 'all_cat', 'back_menu']))
+async def process_get_catalpg_for_category(callback: CallbackQuery, state: FSMContext):
+    """
+    Обрабатываем выбор одной из категорий
+    """
+    products = get_products_for_catalog(callback.data)
+    now_prod = products[0]
+    keyboard = create_catalog_pagination_kb()
+    await callback.message.answer_photo(
+        photo=now_prod[5],
+        caption=lexicon['catalog']['format_product_card'].format(now_prod[1], now_prod[2], now_prod[3], now_prod[4], now_prod[6]),
+        reply_markup=keyboard
+    )
+    await state.update_data({'products' : products, 'now': 0})
+
+
+@router.callback_query(StateFilter(FSMFillForm.show_catalog), F.data == 'all_cat')
+async def process_get_catalpg_for_all_category(callback: CallbackQuery, state: FSMContext):
+    """
+    Обрабатываем выбор всех категорий
+    """
+    products = get_products_for_catalog()
+    now_prod = products[0]
+    keyboard = create_catalog_pagination_kb()
+    await callback.message.answer_photo(
+        photo=now_prod[5],
+        caption=lexicon['catalog']['format_product_card'].format(now_prod[1], now_prod[2], now_prod[3], now_prod[4], now_prod[6]),
+        reply_markup=keyboard
+    )
+    await state.update_data({'products' : products, 'now': 0})
+
+@router.callback_query(StateFilter(FSMFillForm.show_catalog), F.data.in_(['next', 'back']))
+async def process_get_next_or_back_product_in_catalog(callback: CallbackQuery, state: FSMContext):
+    """
+    Обрабатываем кнопку с переходои к следующему или предыдущему товару
+    """
+    data =await state.get_data()
+    products = data['products']
+    now = data['now']
+    if callback.data == 'next':
+        now += 1
+        if now <= len(products) - 1:
+            now_prod = products[now]
+            keyboard = create_catalog_pagination_kb()
+            await callback.message.answer_photo(
+                photo=now_prod[5],
+                caption=lexicon['catalog']['format_product_card'].format(now_prod[1], now_prod[2], now_prod[3], now_prod[4], now_prod[6]),
+                reply_markup=keyboard
+            )
+        else:
+            now -= 1
+            keyboard = create_only_to_menu_kb()
+            await callback.message.answer(
+                text=lexicon['catalog']['last_product_eror'],
+                reply_markup=keyboard
+            )
+    elif callback.data == 'back':
+        now -= 1
+        if now >= 0:
+            now_prod = products[now]
+            keyboard = create_catalog_pagination_kb()
+            await callback.message.answer_photo(
+                photo=now_prod[5],
+                caption=lexicon['catalog']['format_product_card'].format(now_prod[1], now_prod[2], now_prod[3], now_prod[4], now_prod[6]),
+                reply_markup=keyboard
+            )
+        else:
+            now += 1
+            keyboard = create_only_to_menu_kb()
+            await callback.message.answer(
+                text=lexicon['catalog']['first_product_eror'],
+                reply_markup=keyboard
+            )
+    await state.update_data({'products' : products, 'now': now})
+
+@router.callback_query(StateFilter(FSMFillForm.show_catalog), F.data=='add_to_bag')
+async def process_add_product_to_user_bag(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    products = data['products']
+    now = data['now']
+    now_prod = products[now]
+    add_prod_to_user_bag(callback.from_user.id, now_prod)
+    keyboard = create_catalog_pagination_kb()
+    await callback.message.answer(
+        text=lexicon['catalog']['aded_to_bag']
+    )
+    await callback.message.answer_photo(
+                photo=now_prod[5],
+                caption=lexicon['catalog']['format_product_card'].format(now_prod[1], now_prod[2], now_prod[3], now_prod[4], now_prod[6]),
+                reply_markup=keyboard
+    )
+
+@router.callback_query(StateFilter(FSMFillForm.show_catalog), F.data=='back_menu')
+@router.callback_query(StateFilter(FSMFillForm.show_catalog), F.data=='cancel')
+async def process_back_menu_from_catalog(callback: CallbackQuery, state: FSMContext):
+    keyboard = create_menu_kb()
+    await callback.message.answer(
         text =lexicon['common']['menu_message'],
         reply_markup=keyboard
     )

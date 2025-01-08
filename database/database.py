@@ -71,11 +71,10 @@ def create_bag_for_user(user_id: int):
         try:
             cur = conn.cursor()
             cur.execute(f"""CREATE TABLE IF NOT EXISTS bag_{user_id}(
-                         id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id INTEGER,
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
                         product_id INTEGER,
                         quantity INTEGER,
-                        FOREIGN KEY (user_id) REFERENCES users(user_id),
+                        price INTEGER,
                         FOREIGN KEY (product_id) REFERENCES products(id));""") #Связываем базу данных с users по user_id и с products по product_id
             conn.commit()
         except Exception as e:
@@ -111,6 +110,48 @@ def add_product(sl: dict):
             cur = conn.cursor()
             cur.execute("""INSERT INTO products (title, description, price, category, image_url, available)
                         VALUES (?, ?, ?, ?, ?, ?)""", (sl['name'], sl['descr'], sl['price'], sl['category'], sl['photo'], sl['available']))
+            conn.commit()
+        except Exception as e:
+            print(f'ошибка при создании записи новго пользователя в products:{e}')
+        finally:
+            cur.close()
+            conn.close()
+
+def get_products_for_catalog(category: str | None = None):
+    """
+    Получаем товары по выбранной категории или среди всех категорий по умолчанию
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            if category:
+                cur.execute("""SELECT * FROM products
+                            WHERE category = ?""", (category,))
+                a = cur.fetchall()
+            else:
+                cur.execute("""SELECT * FROM products
+                            """)
+                a = cur.fetchall()
+            conn.commit()
+        except Exception as e:
+            print(f'ошибка при получении данных продукта для его демонстрации в каталоге:{e}')
+            a = None
+        finally:
+            cur.close()
+            conn.close()
+    return a
+
+
+def add_prod_to_user_bag(id: int, prod: tuple):
+    """
+    Добавляем товар в пользовательскую корзину
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(f"""INSERT INTO bag_{id} (product_id, quantity, price) VALUES (?, 1, ?)""", (prod[0],  prod[3]))
             conn.commit()
         except Exception as e:
             print(f'ошибка при создании записи новго пользователя в products:{e}')

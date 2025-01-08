@@ -187,6 +187,9 @@ async def process_add_count_available_product(message: Message, state: FSMContex
 
 @router.message(StateFilter(FSMFillForm.add_product_available_a), F.text == 'Несколько')
 async def pprocess_add_count_available_product(message: Message, state: FSMContext):
+    """
+    обрабатываем  кнопку несколько при  вводе товара в наличии
+    """
     pr[f'new_prod_by_{message.from_user.id}']['available'] = message.text
     pr[f'new_prod_by_{message.from_user.id}']['is_full'] = True
     keyboard = create_yes_no_kb()
