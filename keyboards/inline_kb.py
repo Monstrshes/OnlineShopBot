@@ -20,3 +20,13 @@ def create_categories_kb_to_show_catalpg(list_c: list[str]) -> InlineKeyboardMar
     buttons.append(InlineKeyboardButton(text='Отмена', callback_data='cancel'))
     builder.row(*buttons, width=1)
     return builder.as_markup()
+
+def create_redact_bag_kb(bag_products: list[tuple]) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    buttons = []
+    for btn in bag_products:
+        a = InlineKeyboardButton(text = btn[4][:25], callback_data=str(btn[1]))
+        buttons.append(a)
+    buttons.append(InlineKeyboardButton(text='Отмена', callback_data='cancel'))
+    builder.row(*buttons, width=1)
+    return builder.as_markup()

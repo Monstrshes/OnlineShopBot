@@ -9,11 +9,12 @@ from copy import deepcopy
 
 from lexicon.lexicon_ru import lexicon
 from lexicon.lexicon_for_every_magazine import lexicon_for_shop
-from database.database import create_users_bd, create_products_bd, create_bag_for_user, new_user_in_users, get_products_for_catalog, add_prod_to_user_bag
-from keyboards.default_kb import create_only_to_menu_kb, create_only_to_admin_panel_kb, create_menu_kb
+from database.database import (create_users_bd, create_products_bd, create_bag_for_user, new_user_in_users, get_products_for_catalog, add_prod_to_user_bag, get_available_product,
+                               get_quiantly_product, get_bag_products, get_product_in_bag_for_id)
+from keyboards.default_kb import create_only_to_menu_kb, create_only_to_admin_panel_kb, create_menu_kb, create_in_bag_kb, create_choose_redact_kb
 from database.additional_variables import new_product_ex, admin_categories_nodef, pr, ct,admin_categories_def
-from keyboards.inline_kb import create_catalog_pagination_kb, create_categories_kb_to_show_catalpg
-
+from keyboards.inline_kb import create_catalog_pagination_kb, create_categories_kb_to_show_catalpg, create_redact_bag_kb
+from services.services import create_products_list_for_bag, count_itogo
 
 router = Router()
 
@@ -85,7 +86,7 @@ async def process_to_end_admin_NOT_IN_ADMIN_STATE(message: Message, state: FSMCo
     )
     await state.set_state(default_state)
 
-@router.message(StateFilter(default_state, FSMFillForm.menu, FSMFillForm.show_catalog), F.text == lexicon['common']['back_to_menu_button'])
+@router.message(StateFilter(default_state, FSMFillForm.menu, FSMFillForm.show_catalog, FSMFillForm.show_bag), F.text == lexicon['common']['back_to_menu_button'])
 async def process_go_to_menu(message: Message, state: FSMContext):
     """
     Обрабатывваем кнопку Вернуться в меню в следующих состояниях:
@@ -198,11 +199,18 @@ async def process_add_product_to_user_bag(callback: CallbackQuery, state: FSMCon
     products = data['products']
     now = data['now']
     now_prod = products[now]
-    add_prod_to_user_bag(callback.from_user.id, now_prod)
-    keyboard = create_catalog_pagination_kb()
-    await callback.message.answer(
+    available = get_available_product(now_prod[0])
+    quiantly = get_quiantly_product(callback.from_user.id, now_prod[0])
+    if quiantly + 1 <= available or available == 'Несколько':
+        add_prod_to_user_bag(callback.from_user.id, now_prod)
+        await callback.message.answer(
         text=lexicon['catalog']['aded_to_bag']
     )
+    else:
+        await callback.message.answer(
+            text=lexicon['catalog']['not_aded_to_bag_av']
+        )
+    keyboard = create_catalog_pagination_kb()
     await callback.message.answer_photo(
                 photo=now_prod[5],
                 caption=lexicon['catalog']['format_product_card'].format(now_prod[1], now_prod[2], now_prod[3], now_prod[4], now_prod[6]),
@@ -218,3 +226,48 @@ async def process_back_menu_from_catalog(callback: CallbackQuery, state: FSMCont
         reply_markup=keyboard
     )
     await state.set_state(FSMFillForm.menu)
+
+@router.message(StateFilter(FSMFillForm.menu), F.text == lexicon['menu_buttons']['cart_title'])
+async def process_to_user_bag_go(message: Message, state: FSMContext):
+    bag_products = get_bag_products(message.from_user.id)
+    list_for_bag = create_products_list_for_bag(bag_products)
+    itogo = count_itogo(bag_products)
+    keyboard = create_in_bag_kb()
+    await message.answer(
+        text=lexicon['bag']['bag_message'].format(list_for_bag, itogo),
+        reply_markup=keyboard
+    )
+    await state.set_state(FSMFillForm.show_bag)
+
+@router.message(StateFilter(FSMFillForm.show_bag), F.text == lexicon['bag_btns']['redact'])
+async def process_go_to_redact_bag(message: Message, state: FSMContext):
+    bag_products = get_bag_products(message.from_user.id)
+    keyboard = create_redact_bag_kb(bag_products)
+    await message.answer(
+        text=lexicon['common']['del_kb'],
+        reply_markup=ReplyKeyboardRemove()
+    )
+    await message.answer(
+        text=lexicon['bag']['redact_bag_message'],
+        reply_markup=keyboard
+    )
+
+@router.callback_query(StateFilter(FSMFillForm.show_bag), F.data != 'cancel')
+async def process_choose_product_to_redact(callback: CallbackQuery, state: FSMContext):
+    keyboard = create_choose_redact_kb()
+    pr = get_product_in_bag_for_id(callback.from_user.id, int(callback.data))
+    await callback.message.answer(
+        text=lexicon['cart']['cart_item'].format(pr[4], pr[2], pr[3], pr[3]*pr[2]),
+        reply_markup=keyboard
+    )
+
+@router.callback_query(StateFilter(FSMFillForm.show_bag), F.data == 'cancel')
+async def process_cancel_from_redact_bag(callback: CallbackQuery, state: FSMContext):
+    bag_products = get_bag_products(callback.message.from_user.id)
+    list_for_bag = create_products_list_for_bag(bag_products)
+    itogo = count_itogo(bag_products)
+    keyboard = create_in_bag_kb()
+    await callback.message.answer(
+        text=lexicon['bag']['bag_message'].format(list_for_bag, itogo),
+        reply_markup=keyboard
+    )

@@ -59,3 +59,30 @@ def create_yes_no_kb() -> ReplyKeyboardMarkup:
         resize_keyboard=True
     )
     return keyboard
+
+def create_in_bag_kb() -> ReplyKeyboardMarkup:
+    """
+    Создаём клавиатуру для корзины пользователя
+    """
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=lexicon['bag_btns']['redact'])],
+            [KeyboardButton(text=lexicon['bag_btns']['do_buy'])],
+            [KeyboardButton(text=lexicon['common']['back_to_menu_button'])]
+        ],
+        resize_keyboard=True
+    )
+    return keyboard
+
+def create_choose_redact_kb() -> ReplyKeyboardMarkup:
+    """
+    Создаём клавиатуру для выбора дествия редактирования товара
+    """
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=lexicon['bag_btns']['redact_quantity'])],
+            [KeyboardButton(text=lexicon['bag_btns']['delete'])]
+        ],
+        resize_keyboard=True
+    )
+    return keyboard
