@@ -250,7 +250,39 @@ def get_product_in_bag_for_id(user_id: int, product_id: int):
             conn.commit()
             return a
         except Exception as e:
-            print(f'ошибка при спопытке получить продукт из корзины:{e}')
+            print(f'ошибка при попытке получить продукт из корзины:{e}')
+        finally:
+            cur.close()
+            conn.close()
+
+def change_quantityprod_in_bag(user_id: int, prod_id: int, new_quan: int):
+    """
+    Меняет количество товара в корзине пользователя
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(f"""UPDATE bag_{user_id} SET quantity = ? WHERE product_id = ? """, (new_quan, prod_id))
+            conn.commit()
+        except Exception as e:
+            print(f'ошибка при попытке изменить количество продукта в корзине:{e}')
+        finally:
+            cur.close()
+            conn.close()
+
+def delete_product_from_bag(user_id: int, prod_id: int):
+    """
+    Удаляем продукт из корзины пользователя
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(f"""DELETE FROM bag_{user_id} WHERE product_id = ?""", (prod_id, ))
+            conn.commit()
+        except Exception as e:
+            print(f'ошибка при попытке удалить продукт из корзины пользователя:{e}')
         finally:
             cur.close()
             conn.close()

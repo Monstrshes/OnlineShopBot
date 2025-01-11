@@ -3,7 +3,7 @@ from lexicon.lexicon_ru import lexicon
 
 def create_only_to_menu_kb() -> ReplyKeyboardMarkup:
     """
-    Дела5ем клавиатуру с кнопкой Вернуться в меню
+    Делаем клавиатуру с кнопкой Вернуться в меню
     """
     keyboard = ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text=lexicon['common']['back_to_menu_button'])]],
@@ -81,7 +81,8 @@ def create_choose_redact_kb() -> ReplyKeyboardMarkup:
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=lexicon['bag_btns']['redact_quantity'])],
-            [KeyboardButton(text=lexicon['bag_btns']['delete'])]
+            [KeyboardButton(text=lexicon['bag_btns']['delete'])],
+            [KeyboardButton(text=lexicon['common']['cancel_button'])]
         ],
         resize_keyboard=True
     )
