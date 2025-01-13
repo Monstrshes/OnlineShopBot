@@ -38,7 +38,28 @@ def create_users_bd():
         finally:
             cur.close()
             conn.close()
+def create_orders_db():
+    """
+    Создаём таблицу с заказами
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute("""CREATE TABLE IF NOT EXISTS orders(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    order_price TEXT,
+                    status TEXT,
+                    order_data TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
+                    );""")
+            conn.commit()
+        except Exception as e:
+            print(f'Ошибка при создании таблицы users:{e}')
+
+        finally:
+            cur.close()
+            conn.close()
 def create_products_bd():
     """
     Создаем каталог товаров

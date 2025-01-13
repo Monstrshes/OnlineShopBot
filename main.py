@@ -38,6 +38,7 @@ async def main():
     dp = Dispatcher(storage=storage)
 
     dp['admin_ids'] = config.tg_bot.admin_ids
+    dp['bot'] = bot
     # Настраиваем главное меню бота
     await set_main_menu(bot)
 

@@ -30,3 +30,9 @@ def create_redact_bag_kb(bag_products: list[tuple]) -> InlineKeyboardMarkup:
     buttons.append(InlineKeyboardButton(text='Отмена', callback_data='cancel'))
     builder.row(*buttons, width=1)
     return builder.as_markup()
+
+def create_inline_yes_no_kb():
+    builder = InlineKeyboardBuilder()
+    buttons = [InlineKeyboardButton(text = 'Да', callback_data='yes'), InlineKeyboardButton(text = 'Нет', callback_data='no')]
+    builder.row(*buttons, width=1)
+    return builder.as_markup()

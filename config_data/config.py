@@ -13,6 +13,10 @@ class DataBase:
     path: str #путь до места, где хранимтся база данных
 
 @dataclass
+class PAY_TOKEN:
+    pay_token : str
+
+@dataclass
 class Config:
     tg_bot: TgBot
 
@@ -35,4 +39,11 @@ def load_config_db(path: str | None = None) -> Config:
     env.read_env(path=path)
     return DataBase(
         path=env('PATH_TO_BD')
+    )
+
+def load_config_pay(path: str | None = None) -> PAY_TOKEN:
+    env = Env()
+    env.read_env(path)
+    return PAY_TOKEN(
+        pay_token=env('PAY_TOKEN')
     )

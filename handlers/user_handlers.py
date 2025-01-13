@@ -1,25 +1,33 @@
-from aiogram import Router, F, Bot
+from aiogram import Router, F, Bot, types
 from aiogram.fsm.state import default_state
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, PreCheckoutQuery
 from aiogram.filters import Command, CommandStart, StateFilter
 from states.states import FSMFillForm
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardRemove, FSInputFile
 from copy import deepcopy
+from aiogram.types.message import ContentType
+import logging
 
 from lexicon.lexicon_ru import lexicon
 from lexicon.lexicon_for_every_magazine import lexicon_for_shop
 from database.database import (create_users_bd, create_products_bd, create_bag_for_user, new_user_in_users, get_products_for_catalog, add_prod_to_user_bag, get_available_product,
-                               get_quiantly_product, get_bag_products, get_product_in_bag_for_id, change_quantityprod_in_bag, delete_product_from_bag)
+                               get_quiantly_product, get_bag_products, get_product_in_bag_for_id, change_quantityprod_in_bag, delete_product_from_bag, create_orders_db)
 from keyboards.default_kb import (create_only_to_menu_kb, create_only_to_admin_panel_kb, create_menu_kb, create_in_bag_kb, create_choose_redact_kb, create_cancellation_kb)
 from database.additional_variables import new_product_ex, admin_categories_nodef, pr, ct,admin_categories_def
-from keyboards.inline_kb import create_catalog_pagination_kb, create_categories_kb_to_show_catalpg, create_redact_bag_kb
+from keyboards.inline_kb import create_catalog_pagination_kb, create_categories_kb_to_show_catalpg, create_redact_bag_kb, create_inline_yes_no_kb
 from services.services import create_products_list_for_bag, count_itogo
+from config_data.config import load_config_pay
 
 router = Router()
 
+config_pay = load_config_pay()
+
 create_users_bd() #Создаём базу данных всех пользователей
 create_products_bd() #создаём каталог(базу данных всех товаров)
+create_orders_db() #Создаём базу данных всех заказов
+
+logger = logging.getLogger(__name__)
 
 @router.message(CommandStart())
 async def process_start_message(message: Message, state: FSMContext, admin_ids):
@@ -244,13 +252,21 @@ async def process_back_menu_from_catalog_(callback: CallbackQuery, state: FSMCon
 @router.message(StateFilter(FSMFillForm.menu), F.text == lexicon['menu_buttons']['cart_title'])
 async def process_to_user_bag_go(message: Message, state: FSMContext):
     bag_products = get_bag_products(message.from_user.id)
-    list_for_bag = create_products_list_for_bag(bag_products)
-    itogo = count_itogo(bag_products)
-    keyboard = create_in_bag_kb()
-    await message.answer(
-        text=lexicon['bag']['bag_message'].format(list_for_bag, itogo),
-        reply_markup=keyboard
-    )
+    if bag_products:
+        list_for_bag = create_products_list_for_bag(bag_products)
+        itogo = count_itogo(bag_products)
+        keyboard = create_in_bag_kb()
+        await message.answer(
+            text=lexicon['bag']['bag_message'].format(list_for_bag, itogo),
+            reply_markup=keyboard
+        )
+        await state.update_data({"summ_bag": itogo})
+    else:
+        keyboard = create_only_to_menu_kb()
+        await message.answer(
+            text=lexicon['bag']['no_products'],
+            reply_markup=keyboard
+        )
     await state.set_state(FSMFillForm.show_bag)
 
 @router.message(StateFilter(FSMFillForm.show_bag), F.text == lexicon['bag_btns']['redact'])
@@ -281,13 +297,21 @@ async def process_choose_product_to_redact(callback: CallbackQuery, state: FSMCo
 @router.callback_query(StateFilter(FSMFillForm.redact_bag), F.data == 'cancel')
 async def process_cancel_from_redact_bag(callback: CallbackQuery, state: FSMContext):
     bag_products = get_bag_products(callback.from_user.id)
-    list_for_bag = create_products_list_for_bag(bag_products)
-    itogo = count_itogo(bag_products)
-    keyboard = create_in_bag_kb()
-    await callback.message.answer(
-        text=lexicon['bag']['bag_message'].format(list_for_bag, itogo),
-        reply_markup=keyboard
-    )
+    if bag_products:
+        list_for_bag = create_products_list_for_bag(bag_products)
+        itogo = count_itogo(bag_products)
+        keyboard = create_in_bag_kb()
+        await callback.message.answer(
+            text=lexicon['bag']['bag_message'].format(list_for_bag, itogo),
+            reply_markup=keyboard
+        )
+        await state.update_data({"summ_bag": itogo})
+    else:
+        keyboard = create_only_to_menu_kb()
+        await callback.message.answer(
+            text=lexicon['bag']['no_products'],
+            reply_markup=keyboard
+        )
     await state.set_state(FSMFillForm.show_bag)
 
 @router.message(StateFilter(FSMFillForm.redact_product), F.text == lexicon['bag_btns']['redact_quantity'])
@@ -312,25 +336,41 @@ async def process_change_quantity_product(message: Message, state: FSMContext):
             text=lexicon['bag']['quantity_more_than_avail']
         )
     bag_products = get_bag_products(message.from_user.id)
-    list_for_bag = create_products_list_for_bag(bag_products)
-    itogo = count_itogo(bag_products)
-    keyboard = create_in_bag_kb()
-    await message.answer(
-        text=lexicon['bag']['bag_message'].format(list_for_bag, itogo),
-        reply_markup=keyboard
-    )
+    if bag_products:
+        list_for_bag = create_products_list_for_bag(bag_products)
+        itogo = count_itogo(bag_products)
+        keyboard = create_in_bag_kb()
+        await message.answer(
+            text=lexicon['bag']['bag_message'].format(list_for_bag, itogo),
+            reply_markup=keyboard
+        )
+        await state.update_data({"summ_bag": itogo})
+    else:
+        keyboard = create_only_to_menu_kb()
+        await message.answer(
+            text=lexicon['bag']['no_products'],
+            reply_markup=keyboard
+        )
     await state.set_state(FSMFillForm.show_bag)
 
 @router.message(StateFilter(FSMFillForm.redact_product), F.text == lexicon['common']['cancel_button'])
 async def process_cancel_in_redact_product(message: Message, state: FSMContext):
     bag_products = get_bag_products(message.from_user.id)
-    list_for_bag = create_products_list_for_bag(bag_products)
-    itogo = count_itogo(bag_products)
-    keyboard = create_in_bag_kb()
-    await message.answer(
-        text=lexicon['bag']['bag_message'].format(list_for_bag, itogo),
-        reply_markup=keyboard
-    )
+    if bag_products:
+        list_for_bag = create_products_list_for_bag(bag_products)
+        itogo = count_itogo(bag_products)
+        keyboard = create_in_bag_kb()
+        await message.answer(
+            text=lexicon['bag']['bag_message'].format(list_for_bag, itogo),
+            reply_markup=keyboard
+        )
+        await state.update_data({"summ_bag": itogo})
+    else:
+        keyboard = create_only_to_menu_kb()
+        await message.answer(
+            text=lexicon['bag']['no_products'],
+            reply_markup=keyboard
+        )
     await state.set_state(FSMFillForm.show_bag)
 
 @router.message(StateFilter(FSMFillForm.redact_product), F.text == lexicon['bag_btns']['delete'])
@@ -341,11 +381,98 @@ async def process_delete_product_from_bag(message: Message, state: FSMContext):
         text=lexicon['bag']['product_deleted']
     )
     bag_products = get_bag_products(message.from_user.id)
-    list_for_bag = create_products_list_for_bag(bag_products)
-    itogo = count_itogo(bag_products)
-    keyboard = create_in_bag_kb()
+    if bag_products:
+        list_for_bag = create_products_list_for_bag(bag_products)
+        itogo = count_itogo(bag_products)
+        keyboard = create_in_bag_kb()
+        await message.answer(
+            text=lexicon['bag']['bag_message'].format(list_for_bag, itogo),
+            reply_markup=keyboard
+        )
+        await state.update_data({"summ_bag": itogo})
+    else:
+        keyboard = create_only_to_menu_kb()
+        await message.answer(
+            text=lexicon['bag']['no_products'],
+            reply_markup=keyboard
+        )
+    await state.set_state(FSMFillForm.show_bag)
+
+@router.message(StateFilter(FSMFillForm.show_bag), F.text == lexicon['bag_btns']['do_buy'])
+async def process_do_buy(message: Message, state: FSMContext):
+    keyboard = create_inline_yes_no_kb()
     await message.answer(
-        text=lexicon['bag']['bag_message'].format(list_for_bag, itogo),
+        text=lexicon['common']['del_kb'],
+        reply_markup=ReplyKeyboardRemove()
+    )
+    await message.answer(
+        text=lexicon['bag']['buy_msg'],
         reply_markup=keyboard
     )
+    await state.set_state(FSMFillForm.do_buy)
+
+@router.callback_query(StateFilter(FSMFillForm.do_buy), F.data == 'no')
+async def process_cancel_buy(callback: CallbackQuery, state: FSMContext):
+    bag_products = get_bag_products(callback.from_user.id)
+    if bag_products:
+        list_for_bag = create_products_list_for_bag(bag_products)
+        itogo = count_itogo(bag_products)
+        keyboard = create_in_bag_kb()
+        await callback.message.answer(
+            text=lexicon['bag']['bag_message'].format(list_for_bag, itogo),
+            reply_markup=keyboard
+        )
+        await state.update_data({"summ_bag": itogo})
+    else:
+        keyboard = create_only_to_menu_kb()
+        await callback.message.answer(
+            text=lexicon['bag']['no_products'],
+            reply_markup=keyboard
+        )
     await state.set_state(FSMFillForm.show_bag)
+
+@router.callback_query(StateFilter(FSMFillForm.do_buy), F.data == 'yes')
+async def process_acess_buy(callback: CallbackQuery, state: FSMContext):
+    sl = await state.get_data()
+    await state.clear()
+    summ_bag = int(sl['summ_bag'])
+    PRICE = types.LabeledPrice(label="Оплата корзины", amount=summ_bag*100)  # в копейках (руб)
+    if config_pay.pay_token.split(':')[1] == 'TEST':
+        await callback.message.answer(text= "Тестовый платеж!!!")
+
+    await callback.bot.send_invoice(callback.message.chat.id,
+                           title="Оплата корзины",
+                           description="Оплата всех товаров, которые сейчас у вас в корзине",
+                           provider_token=config_pay.pay_token,
+                           currency="rub",
+                           photo_url='https://cdn-icons-png.flaticon.com/512/107/107831.png',
+                           photo_width=416,
+                           photo_height=234,
+                           photo_size=416,
+                           is_flexible=False,
+                           prices=[PRICE],
+                           start_parameter="payment_bag",
+                           payload="test-invoice-payload")
+    logger.info('Начинаем оплату')
+    await state.set_state(FSMFillForm.payment)
+
+# pre checkout  (must be answered in 10 seconds)
+@router.pre_checkout_query(StateFilter(FSMFillForm.payment))
+async def pre_checkout_query(pre_checkout_q: PreCheckoutQuery, bot: Bot):
+    await bot.answer_pre_checkout_query(pre_checkout_q.id, ok=True)
+    logger.info('Оплата прошла')
+
+
+# successful payment
+@router.message(StateFilter(FSMFillForm.payment), F.content_type == ContentType.SUCCESSFUL_PAYMENT)
+async def successful_payment(message: Message):
+    """
+    Обработчик для успешных платежей
+    """
+    print("SUCCESSFUL PAYMENT:")
+    payment_info = message.successful_payment.__dict__
+    for k, v in payment_info.items():
+        print(f"{k} = {v}")
+
+    await message.answer(
+                           f"Платеж на сумму {message.successful_payment.total_amount // 100} {message.successful_payment.currency} прошел успешно!!!")

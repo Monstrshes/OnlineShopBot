@@ -7,6 +7,7 @@ class FSMFillForm(StatesGroup):
     redact_bag = State() #Состояние для редактирования корзины
     redact_product = State() #Состояние для редактирования конкретного продукта из корзины
     do_buy = State() #состояние для покупки для пользователя
+    payment = State()
 
     menu_a = State() #Состояние меню админа
     add_product_price_a = State() #состояние для добавления цены товара для админа
