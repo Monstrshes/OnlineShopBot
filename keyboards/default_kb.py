@@ -87,3 +87,17 @@ def create_choose_redact_kb() -> ReplyKeyboardMarkup:
         resize_keyboard=True
     )
     return keyboard
+
+def create_perconal_account_kb() -> ReplyKeyboardMarkup:
+    """
+    Создаём клавиатуру личного кабинета
+    """
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=lexicon['perconal_acc_btns']['show_orders'])],
+            [KeyboardButton(text=lexicon['perconal_acc_btns']['helping'])],
+            [KeyboardButton(text=lexicon['common']['back_to_menu_button'])]
+        ],
+        resize_keyboard=True
+    )
+    return keyboard

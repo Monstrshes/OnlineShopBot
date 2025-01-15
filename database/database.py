@@ -48,8 +48,10 @@ def create_orders_db():
             cur = conn.cursor()
             cur.execute("""CREATE TABLE IF NOT EXISTS orders(
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INT,
                     order_price TEXT,
                     status TEXT,
+                    bag_msg TEXT,
                     order_data TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
                     );""")
@@ -304,6 +306,77 @@ def delete_product_from_bag(user_id: int, prod_id: int):
             conn.commit()
         except Exception as e:
             print(f'ошибка при попытке удалить продукт из корзины пользователя:{e}')
+        finally:
+            cur.close()
+            conn.close()
+
+def clear_bag(user_id: int):
+    """
+    Очищаем корзину пользователя после заказа
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(f"""DELETE FROM bag_{user_id} """)
+            conn.commit()
+        except Exception as e:
+            print(f'ошибка при попытке удалить все продукты из корзины пользователя:{e}')
+        finally:
+            cur.close()
+            conn.close()
+
+def create_new_order(user_id: int, price: int, bag_msg: str):
+    """
+    Создаём новую запись в таблице orders
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(f"""INSERT INTO orders (user_id, order_price, status, bag_msg)
+                        VALUES (?, ?, 'Оплачено', ?) """, (user_id, price, bag_msg))
+            conn.commit()
+        except Exception as e:
+            print(f'ошибка при попытке удалить все продукты из корзины пользователя:{e}')
+        finally:
+            cur.close()
+            conn.close()
+
+def get_one_order_for_user(order_id: int):
+    """
+    Получаем все заказы от пользователя
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(f"""SELECT * FROM orders WHERE id = ?""", (order_id, ))
+            a = cur.fetchone()
+            conn.commit()
+            return a
+        except Exception as e:
+            print(f'ошибка при попытке получить заказы пользователя:{e}')
+            return None
+        finally:
+            cur.close()
+            conn.close()
+
+def get_orders_for_user1(user_id: int):
+    """
+    Получаем все заказы от пользователя
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(f"""SELECT id, order_price FROM orders WHERE user_id = ?""", (user_id, ))
+            a = cur.fetchall()
+            conn.commit()
+            return a
+        except Exception as e:
+            print(f'ошибка при попытке получить заказы пользователя:{e}')
+            return None
         finally:
             cur.close()
             conn.close()

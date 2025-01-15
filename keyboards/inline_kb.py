@@ -36,3 +36,12 @@ def create_inline_yes_no_kb():
     buttons = [InlineKeyboardButton(text = 'Да', callback_data='yes'), InlineKeyboardButton(text = 'Нет', callback_data='no')]
     builder.row(*buttons, width=1)
     return builder.as_markup()
+
+def create_show_all_orders_kb(orders_list: list):
+    builder = InlineKeyboardBuilder()
+    buttons = []
+    for order in orders_list:
+        buttons.append(InlineKeyboardButton(text = lexicon['perconal_ac']['inline_bt_orders'].format(order[0], order[1]), callback_data=str(order[0])))
+    buttons.append(InlineKeyboardButton(text='Отмена', callback_data='cancel'))
+    builder.row(*buttons, width=1)
+    return builder.as_markup()
