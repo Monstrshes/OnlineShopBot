@@ -380,3 +380,130 @@ def get_orders_for_user1(user_id: int):
         finally:
             cur.close()
             conn.close()
+
+
+def get_products_to_redact_kb():
+    """
+    Получаем все продукты
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(f"""SELECT id, title FROM products """)
+            a = cur.fetchall()
+            conn.commit()
+            return a
+        except Exception as e:
+            print(f'ошибка при попытке получить все продукты:{e}')
+            return None
+        finally:
+            cur.close()
+            conn.close()
+
+def get_product_with_prod_id(prod_id: int):
+    """
+    Получаем информацию по продукту по id
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(f"""SELECT * FROM products
+                        WHERE id = ?""", (prod_id, ))
+            a = cur.fetchone()
+            conn.commit()
+            return a
+        except Exception as e:
+            print(f'ошибка при попытке получить продукт:{e}')
+            return None
+        finally:
+            cur.close()
+            conn.close()
+
+def change_price_prod(prod_id: int, price: int):
+    """
+    Меняем цену товара
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(f"""UPDATE products SET price = ? WHERE id = ?""", (price, prod_id))
+            conn.commit()
+        except Exception as e:
+            print(f'ошибка при изменить цену:{e}')
+            return None
+        finally:
+            cur.close()
+            conn.close()
+
+def change_price_prod(prod_id: int, avail: int | str):
+    """
+    Меняем наличие товара
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(f"""UPDATE products SET available = ? WHERE id = ?""", (avail, prod_id))
+            conn.commit()
+        except Exception as e:
+            print(f'ошибка при попытке изменить наличие:{e}')
+            return None
+        finally:
+            cur.close()
+            conn.close()
+
+def del_product(prod_id: int):
+    """
+    Меняем наличие товара
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(f"""DELETE FROM products WHERE id = ?""", (prod_id,))
+            conn.commit()
+        except Exception as e:
+            print(f'ошибка при попытке изменить наличие:{e}')
+            return None
+        finally:
+            cur.close()
+            conn.close()
+
+def get_id_and_avail_from_bag(user_id: int):
+    """
+    получаем айди и наличие всех товаров
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(f"""SELECT product_id, quantity FROM bag_{user_id}""")
+            a = cur.fetchall()
+            conn.commit()
+            return a
+        except Exception as e:
+            print(f'ошибка при попытке ие:{e}')
+            return None
+        finally:
+            cur.close()
+            conn.close()
+
+def change_available(prod_id: int, avail: int):
+    """
+    получаем айди и наличие всех товаров
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(f"""UPDATE products SET available = available - ? WHERE id = ? AND available != "Несколько" """,(avail, prod_id) )
+            conn.commit()
+        except Exception as e:
+            print(f'ошибка при попытке изменить наличие:{e}')
+            return None
+        finally:
+            cur.close()
+            conn.close()

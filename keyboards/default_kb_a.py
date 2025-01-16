@@ -29,3 +29,15 @@ def create_add_available_kb() -> ReplyKeyboardMarkup:
         resize_keyboard=True
     )
     return keyboard
+
+def create_redact_product_kb() -> ReplyKeyboardMarkup:
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=lexicon['redact_product_btns']['redact_price'])],
+            [KeyboardButton(text=lexicon['redact_product_btns']['redact_avail'])],
+            [KeyboardButton(text=lexicon['redact_product_btns']['del_prod'])],
+            [KeyboardButton(text=lexicon['common']['cancel_button'])]
+        ],
+        resize_keyboard=True
+    )
+    return keyboard

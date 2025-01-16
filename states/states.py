@@ -19,3 +19,6 @@ class FSMFillForm(StatesGroup):
     add_product_category = State() #состояние для выбора категории  продукта
     add_product_available_a = State() #Состояние для ввода количества товара
     y_or_n_to_add_product_a  = State() #окончательное согласие или отказ на добавление товара
+    redact_product_a = State()
+    redact_price = State()
+    redact_avail = State()

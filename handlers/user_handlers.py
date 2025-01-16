@@ -13,7 +13,7 @@ from lexicon.lexicon_ru import lexicon
 from lexicon.lexicon_for_every_magazine import lexicon_for_shop
 from database.database import (create_users_bd, create_products_bd, create_bag_for_user, new_user_in_users, get_products_for_catalog, add_prod_to_user_bag, get_available_product,
                                get_quiantly_product, get_bag_products, get_product_in_bag_for_id, change_quantityprod_in_bag, delete_product_from_bag, create_orders_db,
-                               clear_bag, create_new_order, get_one_order_for_user, get_orders_for_user1)
+                               clear_bag, create_new_order, get_one_order_for_user, get_orders_for_user1, get_id_and_avail_from_bag, change_available)
 from keyboards.default_kb import (create_only_to_menu_kb, create_only_to_admin_panel_kb, create_menu_kb, create_in_bag_kb, create_choose_redact_kb, create_cancellation_kb,
                                   create_perconal_account_kb)
 from database.additional_variables import new_product_ex, admin_categories_nodef, pr, ct,admin_categories_def
@@ -98,7 +98,7 @@ async def process_to_end_admin_NOT_IN_ADMIN_STATE(message: Message, state: FSMCo
     )
     await state.set_state(default_state)
 
-@router.message(StateFilter(default_state, FSMFillForm.menu, FSMFillForm.show_catalog, FSMFillForm.show_bag, FSMFillForm.payment), F.text == lexicon['common']['back_to_menu_button'])
+@router.message(StateFilter(default_state, FSMFillForm.menu, FSMFillForm.show_catalog, FSMFillForm.show_bag, FSMFillForm.payment, FSMFillForm.perconal_account), F.text == lexicon['common']['back_to_menu_button'])
 async def process_go_to_menu(message: Message, state: FSMContext):
     """
     Обрабатывваем кнопку Вернуться в меню в следующих состояниях:
@@ -486,6 +486,9 @@ async def successful_payment(message: Message, state: FSMContext):
     """
     sl = await state.get_data()
     await state.clear()
+    prod_list = get_id_and_avail_from_bag(message.from_user.id)
+    for prod in prod_list:
+        change_available(prod[0], prod[1])
     clear_bag(message.from_user.id)
     create_new_order(message.from_user.id, sl['price'], sl['bag_msg'])
     keyboard = create_only_to_menu_kb()
