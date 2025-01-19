@@ -39,6 +39,8 @@ async def main():
 
     dp['admin_ids'] = config.tg_bot.admin_ids
     dp['bot'] = bot
+    dp['admin_chat'] = config.tg_bot.admin_chat
+
     # Настраиваем главное меню бота
     await set_main_menu(bot)
 

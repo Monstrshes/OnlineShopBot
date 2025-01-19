@@ -13,13 +13,15 @@ from lexicon.lexicon_ru import lexicon
 from lexicon.lexicon_for_every_magazine import lexicon_for_shop
 from database.database import (create_users_bd, create_products_bd, create_bag_for_user, new_user_in_users, get_products_for_catalog, add_prod_to_user_bag, get_available_product,
                                get_quiantly_product, get_bag_products, get_product_in_bag_for_id, change_quantityprod_in_bag, delete_product_from_bag, create_orders_db,
-                               clear_bag, create_new_order, get_one_order_for_user, get_orders_for_user1, get_id_and_avail_from_bag, change_available)
+                               clear_bag, create_new_order, get_one_order_for_user, get_orders_for_user1, get_id_and_avail_from_bag, change_available, get_username_from_userid
+                               )
 from keyboards.default_kb import (create_only_to_menu_kb, create_only_to_admin_panel_kb, create_menu_kb, create_in_bag_kb, create_choose_redact_kb, create_cancellation_kb,
                                   create_perconal_account_kb)
 from database.additional_variables import new_product_ex, admin_categories_nodef, pr, ct,admin_categories_def
 from keyboards.inline_kb import create_catalog_pagination_kb, create_categories_kb_to_show_catalpg, create_redact_bag_kb, create_inline_yes_no_kb, create_show_all_orders_kb
 from services.services import create_products_list_for_bag, count_itogo
 from config_data.config import load_config_pay
+
 
 router = Router()
 
@@ -468,7 +470,8 @@ async def process_acess_buy(callback: CallbackQuery, state: FSMContext):
                            start_parameter="payment_bag",
                            payload="test-invoice-payload")
     logger.info('Начинаем оплату')
-    await state.update_data({'price': int(sl['summ_bag']), 'bag_msg': bag_msg})
+    username = get_username_from_userid(callback.from_user.id)
+    await state.update_data({'price': int(sl['summ_bag']), 'bag_msg': bag_msg, 'username': username[0]})
     await state.set_state(FSMFillForm.payment)
 
 # pre checkout  (must be answered in 10 seconds)
@@ -480,7 +483,7 @@ async def pre_checkout_query(pre_checkout_q: PreCheckoutQuery, state: FSMContext
 
 # successful payment
 @router.message(StateFilter(FSMFillForm.payment), F.content_type == ContentType.SUCCESSFUL_PAYMENT)
-async def successful_payment(message: Message, state: FSMContext):
+async def successful_payment(message: Message, state: FSMContext, bot: Bot, admin_chat):
     """
     Обработчик для успешных платежей
     """
@@ -492,6 +495,10 @@ async def successful_payment(message: Message, state: FSMContext):
     clear_bag(message.from_user.id)
     create_new_order(message.from_user.id, sl['price'], sl['bag_msg'])
     keyboard = create_only_to_menu_kb()
+    await bot.send_message(
+        chat_id=admin_chat,
+        text=lexicon['admin']['admin_chat_new_order'].format(sl['price'], sl['username'], sl['bag_msg'][21:])
+    )
     await message.answer(
             f"Платеж на сумму {message.successful_payment.total_amount // 100} {message.successful_payment.currency} прошел успешно!!!",
             reply_markup=keyboard

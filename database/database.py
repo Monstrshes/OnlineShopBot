@@ -507,3 +507,22 @@ def change_available(prod_id: int, avail: int):
         finally:
             cur.close()
             conn.close()
+
+def get_username_from_userid(user_id: str):
+    """
+    получаем username по айди юзера
+    """
+    conn = create_connection()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(f"""SELECT username FROM users WHERE user_id = ? """,(user_id, ) )
+            a = cur.fetchone()
+            conn.commit()
+            return a
+        except Exception as e:
+            print(f'ошибка при попытке получить юзернейм:{e}')
+            return None
+        finally:
+            cur.close()
+            conn.close()
